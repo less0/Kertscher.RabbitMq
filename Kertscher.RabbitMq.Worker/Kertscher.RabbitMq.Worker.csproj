@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>10</LangVersion>
-    <Version>0.1</Version>
+    <Version>0.2</Version>
     <Title>RabbitMQ Worker</Title>
     <Authors>Paul Kertscher</Authors>
     <Description>A simple hosted service to simplify my RabbitMQ setup</Description>

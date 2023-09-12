@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -25,7 +26,7 @@ public class RabbitMqWorker : IHostedService
     public virtual async Task StartAsync(CancellationToken cancellationToken)
     {
         await ConnectWithRetryAsync(cancellationToken);
-        await OnConnected(false);
+        await OnConnected(_connection, false);
     }
 
     public virtual Task StopAsync(CancellationToken cancellationToken)
@@ -34,11 +35,22 @@ public class RabbitMqWorker : IHostedService
         return Task.CompletedTask;
     }
 
-    protected virtual Task OnConnected(bool reconnected)
+    protected virtual Task OnDisconnected()
     {
         return Task.CompletedTask;
     }
 
+    protected virtual Task OnReconnecting()
+    {
+        return Task.CompletedTask;
+    }
+
+    protected virtual Task OnConnected(IConnection connection, bool reconnected)
+    {
+        return Task.CompletedTask;
+    }
+
+    [MemberNotNull(nameof(_connection))]
     private async Task ConnectWithRetryAsync(CancellationToken cancellationToken)
     {
         var timeout = TimeSpan.FromMinutes(5);
@@ -71,6 +83,11 @@ public class RabbitMqWorker : IHostedService
                 await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
             }
         }
+
+        if (_connection == null)
+        {
+            throw new NullReferenceException();
+        }
     }
 
     private void OnConnectionShutdown(object? sender, ShutdownEventArgs e)
@@ -79,8 +96,10 @@ public class RabbitMqWorker : IHostedService
         {
             Task.Run(async () =>
             {
+                await OnDisconnected();
+                await OnReconnecting();
                 await ConnectWithRetryAsync(new());
-                await OnConnected(true);
+                await OnConnected(_connection, true);
             });
         }
     }
