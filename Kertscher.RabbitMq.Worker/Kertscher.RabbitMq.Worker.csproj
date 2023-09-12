@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>10</LangVersion>
+    <Version>0.1</Version>
+    <Title>RabbitMQ Worker</Title>
+    <Authors>Paul Kertscher</Authors>
+    <Description>A simple hosted service to simplify my RabbitMQ setup</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
+    <PackageReference Include="RabbitMq.Client" Version="6.5.0" />
+  </ItemGroup>
+
+</Project>
