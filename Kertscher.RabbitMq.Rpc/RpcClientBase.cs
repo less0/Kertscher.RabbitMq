@@ -72,13 +72,11 @@ public class RpcClientBase : IDisposable
                 _channel = _connection.CreateModel();
                 
                 _channel.ExchangeDeclare(_exchangeName, ExchangeType.Direct);
+                _responseQueueName = _channel.QueueDeclare().QueueName;
 
                 _consumer = new(_channel);
                 _consumer.Received += ConsumerOnReceived;
                 _channel.BasicConsume(_consumer, _responseQueueName, true);
-                
-                _responseQueueName = _channel.QueueDeclare().QueueName;
-                
             }
             catch (BrokerUnreachableException)
             {
