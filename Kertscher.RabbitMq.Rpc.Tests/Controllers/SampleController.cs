@@ -2,10 +2,10 @@
 
 public class SampleController
 {
-    public Task<SampleReturnValue> AnyMethod()
+    public Task AnyMethod()
     {
         Calls++;
-        return Task.FromResult(new SampleReturnValue());
+        return Task.CompletedTask;
     }
 
     public int Calls { get; private set; }

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using FluentAssertions;
 using Kertscher.RabbitMq.Rpc.Tests.Controllers;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,9 +43,25 @@ public class ControllerResolverTests
 
         ControllerResolver componentUnderTest = CreateControllerResolver();
         componentUnderTest.RegisterController<SampleController>();
+        
         await componentUnderTest.CallMethodAsync("AnyMethod", Array.Empty<byte>());
+        
         var controllerInstance = _serviceProvider.GetRequiredService<SampleController>();
         controllerInstance.Calls.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CallMethod_ReturnValueIsSerialized()
+    {
+        _serviceCollection.AddSingleton<ReturnValueController>();
+
+        var componentUnderTest = CreateControllerResolver();
+        componentUnderTest.RegisterController<ReturnValueController>();
+
+        var result = await componentUnderTest.CallMethodAsync("MethodWithResult", Array.Empty<byte>());
+
+        var resultAsText = Encoding.UTF8.GetString(result);
+        resultAsText.Should().Be("{\"AProperty\":\"Hello, world!\"}");
     }
     
     [MemberNotNull(nameof(_serviceProvider))]
