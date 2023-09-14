@@ -30,7 +30,7 @@ public class ControllerResolverTests
         _serviceCollection.AddSingleton<SampleController>();
         
         ControllerResolver componentUnderTest = CreateControllerResolver();
-        componentUnderTest.RegisterController<SampleController>();
+        componentUnderTest.RegisterController<SampleController>(out _);
         var exception =
             await Record.ExceptionAsync(() => componentUnderTest.CallMethodAsync("AnyMethod", Array.Empty<byte>()));
         exception.Should().BeNull();
@@ -42,7 +42,7 @@ public class ControllerResolverTests
         _serviceCollection.AddSingleton<SampleController>();
 
         ControllerResolver componentUnderTest = CreateControllerResolver();
-        componentUnderTest.RegisterController<SampleController>();
+        componentUnderTest.RegisterController<SampleController>(out _);
         
         await componentUnderTest.CallMethodAsync("AnyMethod", Array.Empty<byte>());
         
@@ -56,7 +56,7 @@ public class ControllerResolverTests
         _serviceCollection.AddSingleton<ReturnValueController>();
 
         var componentUnderTest = CreateControllerResolver();
-        componentUnderTest.RegisterController<ReturnValueController>();
+        componentUnderTest.RegisterController<ReturnValueController>(out _);
 
         var result = await componentUnderTest.CallMethodAsync("MethodWithResult", Array.Empty<byte>());
 
@@ -70,7 +70,7 @@ public class ControllerResolverTests
         _serviceCollection.AddSingleton<MethodParameterController>();
 
         var componentUnderTest = CreateControllerResolver();
-        componentUnderTest.RegisterController<MethodParameterController>();
+        componentUnderTest.RegisterController<MethodParameterController>(out _);
 
         var parameter = "{\"AString\":\"H3110!\", \"AnInteger\": 161}";
         await componentUnderTest.CallMethodAsync("MethodWithParameter", Encoding.UTF8.GetBytes(parameter));
@@ -79,6 +79,14 @@ public class ControllerResolverTests
         controller.LastParameter.Should().NotBeNull();
         controller.LastParameter!.AString.Should().Be("H3110!");
         controller.LastParameter.AnInteger.Should().Be(161);
+    }
+
+    [Fact]
+    public void RegisterController_OutParameterContainsMethodNames()
+    {
+        var componentUnderTest = CreateControllerResolver();
+        componentUnderTest.RegisterController<ControllerWithMultipleMethods>(out var methodNames);
+        methodNames.Should().BeEquivalentTo("FirstMethod", "SecondMethod");
     }
     
     [MemberNotNull(nameof(_serviceProvider))]

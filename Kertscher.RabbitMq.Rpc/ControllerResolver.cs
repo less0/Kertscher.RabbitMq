@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Kertscher.RabbitMq.Rpc;
 
-internal class ControllerResolver
+internal class ControllerResolver : IControllerResolver
 {
     private readonly Dictionary<string, MethodInfo> _methods = new();
     private readonly IServiceProvider _serviceProvider;
@@ -14,7 +14,7 @@ internal class ControllerResolver
         _serviceProvider = serviceProvider;
     }
 
-    internal void RegisterController<T>()
+    public void RegisterController<T>(out string[] registeredMethods)
     {
         var type = typeof(T);
 
@@ -23,13 +23,17 @@ internal class ControllerResolver
                       where method.DeclaringType != null
                       select new { method.Name, MethodInfo = method };
 
+        List<string> registeredMethodNames = new();
         foreach (var method in methods)
         {
             _methods.Add(method.Name, method.MethodInfo);
+            registeredMethodNames.Add(method.Name);
         }
+
+        registeredMethods = registeredMethodNames.ToArray();
     }
 
-    internal async Task<byte[]> CallMethodAsync(string methodName, byte[] data)
+    public async Task<byte[]> CallMethodAsync(string methodName, byte[] data)
     {
         var methodInfo = GetMethodToCall(methodName);
         var instance = GetControllerInstance(methodInfo);
