@@ -63,6 +63,23 @@ public class ControllerResolverTests
         var resultAsText = Encoding.UTF8.GetString(result);
         resultAsText.Should().Be("{\"AProperty\":\"Hello, world!\"}");
     }
+
+    [Fact]
+    public async Task CallMethod_MethodIsCalledWithExpectedParameter()
+    {
+        _serviceCollection.AddSingleton<MethodParameterController>();
+
+        var componentUnderTest = CreateControllerResolver();
+        componentUnderTest.RegisterController<MethodParameterController>();
+
+        var parameter = "{\"AString\":\"H3110!\", \"AnInteger\": 161}";
+        await componentUnderTest.CallMethodAsync("MethodWithParameter", Encoding.UTF8.GetBytes(parameter));
+
+        var controller = _serviceProvider.GetRequiredService<MethodParameterController>();
+        controller.LastParameter.Should().NotBeNull();
+        controller.LastParameter!.AString.Should().Be("H3110!");
+        controller.LastParameter.AnInteger.Should().Be(161);
+    }
     
     [MemberNotNull(nameof(_serviceProvider))]
     private ControllerResolver CreateControllerResolver()
