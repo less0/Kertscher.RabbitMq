@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -32,38 +33,17 @@ internal class ControllerResolver
         var methodInfo = GetMethodToCall(methodName);
         var instance = GetControllerInstance(methodInfo);
 
+        var task = CallMethod(methodInfo, instance); 
+        await task;
+
+        return await GetReturnValueAsync(task);
+    }
+
+    private static Task CallMethod(MethodInfo methodInfo, object? instance)
+    {
         var methodDelegate = methodInfo.CreateDelegate<Func<Task>>(instance);
         var task = methodDelegate();
-        
-        await task;
-        return await GetReturnValue(task);
-    }
-
-    private static async Task<byte[]> GetReturnValue(Task task)
-    {
-        byte[] value = Array.Empty<byte>();
-
-        var taskType = task.GetType();
-       
-        var resultProperty = taskType.GetProperty("Result");
-        
-        if (resultProperty != null)
-        {
-            var result = resultProperty.GetValue(task);
-
-            using MemoryStream stream = new MemoryStream();
-            await JsonSerializer.SerializeAsync(stream, result);
-            value = stream.ToArray();
-        }
-
-        return value;
-    }
-
-    private object? GetControllerInstance(MethodInfo methodInfo)
-    {
-        var declaringType = methodInfo.DeclaringType!;
-        var instance = _serviceProvider.GetService(declaringType);
-        return instance;
+        return task;
     }
 
     private MethodInfo GetMethodToCall(string methodName)
@@ -75,5 +55,38 @@ internal class ControllerResolver
 
         var methodInfo = _methods[methodName];
         return methodInfo;
+    }
+
+    private object? GetControllerInstance(MethodInfo methodInfo)
+    {
+        var declaringType = methodInfo.DeclaringType!;
+        var instance = _serviceProvider.GetService(declaringType);
+        return instance;
+    }
+
+    private static async Task<byte[]> GetReturnValueAsync(Task task)
+    {
+        if (TryGetResult(task, out var result))
+        {
+            return await SerializeToByteArrayAsync(result);
+        }
+
+        return Array.Empty<byte>();
+    }
+
+    private static bool TryGetResult(Task task, [NotNullWhen(true)] out object? result)
+    {
+        var taskType = task.GetType();
+        var resultProperty = taskType.GetProperty("Result");
+        result = resultProperty?.GetValue(task);
+
+        return result != null;
+    }
+
+    private static async Task<byte[]> SerializeToByteArrayAsync(object result)
+    {
+        using MemoryStream stream = new MemoryStream();
+        await JsonSerializer.SerializeAsync(stream, result);
+        return stream.ToArray();
     }
 }
