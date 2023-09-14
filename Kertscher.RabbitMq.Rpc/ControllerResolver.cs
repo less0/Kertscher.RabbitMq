@@ -4,8 +4,8 @@ namespace Kertscher.RabbitMq.Rpc;
 
 internal class ControllerResolver
 {
-    private IServiceProvider _serviceProvider;
-    private Dictionary<string, MethodInfo> _methods = new();
+    private readonly IServiceProvider _serviceProvider;
+    private readonly Dictionary<string, MethodInfo> _methods = new();
 
     public ControllerResolver(IServiceProvider serviceProvider)
     {
@@ -16,7 +16,7 @@ internal class ControllerResolver
     {
         var type = typeof(T);
         var methods = from method in type.GetMethods()
-            where method.ReturnType == typeof(Task<byte[]>) 
+            where method.ReturnType.IsAssignableTo(typeof(Task)) 
             where method.DeclaringType != null
             select new{method.Name, MethodInfo = method};
         foreach (var method in methods)
@@ -36,7 +36,8 @@ internal class ControllerResolver
         var declaringType = methodInfo.DeclaringType!;
         var instance = _serviceProvider.GetService(declaringType);
 
-        var methodDelegate = methodInfo.CreateDelegate<Func<Task<byte[]>>>(instance);
-        return await methodDelegate();
+        var methodDelegate = methodInfo.CreateDelegate<Func<Task>>(instance);
+        await methodDelegate();
+        return Array.Empty<byte>();
     }
 }

@@ -2,10 +2,10 @@
 
 public class SampleController
 {
-    public Task<byte[]> AnyMethod()
+    public Task<SampleReturnValue> AnyMethod()
     {
         Calls++;
-        return Task.FromResult(Array.Empty<byte>());
+        return Task.FromResult(new SampleReturnValue());
     }
 
     public int Calls { get; private set; }
