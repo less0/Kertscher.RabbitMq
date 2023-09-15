@@ -4,14 +4,14 @@ using RabbitMQ.Client.Events;
 
 namespace Kertscher.RabbitMq.Rpc.Tests;
 
-public class RpcServer : IDisposable
+public class RpcServerDummy : IDisposable
 {
     private IConnection? _connection;
     private IModel? _channel;
     private EventingBasicConsumer? _consumer;
     private readonly string? _queueName;
 
-    public RpcServer(string hostName, string exchange)
+    public RpcServerDummy(string hostName, string exchange)
     {
         ConnectionFactory connectionFactory = new()
         {

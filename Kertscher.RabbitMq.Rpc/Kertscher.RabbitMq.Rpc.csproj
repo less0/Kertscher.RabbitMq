@@ -17,4 +17,8 @@
     <PackageReference Include="RabbitMq.Client" Version="6.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Kertscher.RabbitMq.Worker\Kertscher.RabbitMq.Worker.csproj" />
+  </ItemGroup>
+
 </Project>
