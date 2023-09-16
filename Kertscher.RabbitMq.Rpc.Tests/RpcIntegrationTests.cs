@@ -52,7 +52,7 @@ public class RpcIntegrationTests
         server.RegisterController<MethodParameterController>();
         FullRpcClient client = new("localhost", ExchangeName);
 
-        await client.MethodWithParameter(new Parameter()
+        await client.MethodWithParameter(new Parameter
         {
             AString = "FooBar",
             AnInteger = 4321

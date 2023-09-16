@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using Kertscher.RabbitMq.Rpc.Tests.Controllers;
-using NSubstitute.Core;
 using ReturnValue = Kertscher.RabbitMq.Rpc.Tests.Controllers.ReturnValue;
 
 namespace Kertscher.RabbitMq.Rpc.Tests;
