@@ -52,7 +52,20 @@ public class RpcServer : RabbitMqWorker
 
     private void ConsumerOnReceived(object? sender, BasicDeliverEventArgs e)
     {
-        _controllerResolver.CallMethodAsync(e.RoutingKey, e.Body.ToArray());
+        Task.Run(async () => await OnReceivedAsync(e));
+    }
+
+    private async Task OnReceivedAsync(BasicDeliverEventArgs e)
+    {
+        var result = await _controllerResolver.CallMethodAsync(e.RoutingKey, e.Body.ToArray());
+        ReturnResult(e.BasicProperties.CorrelationId, e.BasicProperties.ReplyTo, result);
+    }
+
+    private void ReturnResult(string correlationId, string replyTo, byte[] result)
+    {
+        var returnProperties = _channel.CreateBasicProperties();
+        returnProperties.CorrelationId = correlationId;
+        _channel.BasicPublish(string.Empty, replyTo, returnProperties, result);
     }
 
     private void SubscribeMethodRoutes(IEnumerable<string> registeredMethods)

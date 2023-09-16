@@ -1,10 +1,12 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
 using Kertscher.RabbitMq.Rpc.Tests.Controllers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using Xunit;
 
 namespace Kertscher.RabbitMq.Rpc.Tests;
@@ -57,6 +59,45 @@ public class RpcServerTests
             .CallMethodAsync(Arg.Is("AnyMethod"), Arg.Any<byte[]>());
     }
 
+    [Fact]
+    public async Task ServerReturnsReturnValue()
+    {
+        var returnedData = new byte[1024];
+        Random.Shared.NextBytes(returnedData);
+        
+        await _componentUnderTest.StartAsync(default);
+        _controllerResolver.CallMethodAsync("AnyMethod", Arg.Any<byte[]>())
+            .Returns(returnedData);
+        
+        RegisterController<SampleController>("AnyMethod");
+        ConnectRabbitMq();
+        var correlationId = CallMethod("AnyMethod");
+
+        CancellationTokenSource cancellationTokenSource = new(TimeSpan.FromSeconds(1));
+        var result = await WaitForResult(correlationId, cancellationTokenSource.Token);
+
+        result.Should().BeEquivalentTo(returnedData, o => o.WithStrictOrdering());
+    }
+
+    private async Task<byte[]> WaitForResult(string correlationId, CancellationToken cancellationToken = default)
+    {
+        TaskCompletionSource<byte[]> taskCompletionSource = new();
+        EventingBasicConsumer eventingBasicConsumer = new EventingBasicConsumer(_channel);
+
+        eventingBasicConsumer.Received += (_, args) =>
+        {
+            if (args.BasicProperties.CorrelationId == correlationId)
+            {
+                taskCompletionSource.SetResult(args.Body.ToArray());
+            }
+        };
+        
+        _channel.BasicConsume(eventingBasicConsumer, _replyQueueName, true);
+        cancellationToken.Register(taskCompletionSource.SetCanceled);
+        
+        return await taskCompletionSource.Task;
+    }
+
     private void RegisterController<TController>(params string[] methodNames)
     {
         _controllerResolver.When(c => c.RegisterController<TController>(out Arg.Any<string[]>()))
@@ -65,13 +106,16 @@ public class RpcServerTests
         _componentUnderTest.RegisterController<TController>();
     }
 
-    private void CallMethod(string methodName)
+    private string CallMethod(string methodName)
     {
         var properties = _channel.CreateBasicProperties();
         properties.ReplyTo = _replyQueueName;
-        properties.CorrelationId = Guid.NewGuid().ToString();
+        var correlationId = Guid.NewGuid().ToString();
+        properties.CorrelationId = correlationId;
 
         _channel.BasicPublish(_exchangeName, methodName, properties, Array.Empty<byte>());
+
+        return correlationId;
     }
 
     [MemberNotNull(nameof(_connection), nameof(_channel), nameof(_replyQueueName))]
